@@ -23,6 +23,7 @@ from .utils.error_helper import raise_error, FailureCounter
 from .utils.exception import WebsocketClosedException, LowProxyScoreException, ProxyScoreNotFoundException, \
     ProxyForbiddenException, ProxyError, WebsocketConnectionFailedError, FailureLimitReachedException, \
     NoProxiesException, ProxyBlockedException, SiteIsDownException, LoginException
+from .utils.metrics.metrics import mined_grass_counter, available_proxies_gauge, proxy_score_gauge
 from better_proxy import Proxy
 
 
@@ -41,10 +42,17 @@ class Grass(GrassWs, GrassRest, FailureCounter):
                                                                     connector=aiohttp.TCPConnector(ssl=False))
 
         self.proxies: List[str] = []
+        available_proxies_gauge.labels(account=f"{self.id}").set_function(lambda: len(self.proxies))
         self.is_extra_proxies_left: bool = True
 
         self.fail_count = 0
         self.limit = 7
+
+        proxy_score_gauge.labels(
+            account=f"{self.id}"
+        ).set_function(
+            lambda: self.proxy_score if self.proxy_score is not None else 0
+        )
 
     async def start(self):
         if self.db:
@@ -111,6 +119,7 @@ class Grass(GrassWs, GrassRest, FailureCounter):
                     await self.send_ping()
                     await self.send_pong()
 
+                    mined_grass_counter.labels(account=f"{self.id}").inc()
                     if SHOW_LOGS_RARELY:
                         if not (i % 10):
                             logger.info(f"{self.id} | Mined grass.")

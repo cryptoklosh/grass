@@ -4,8 +4,9 @@ import os
 import random
 import sys
 import traceback
-
 import aiohttp
+from prometheus_client import start_http_server
+
 from art import text2art
 from imap_tools import MailboxLoginError
 from termcolor import colored, cprint
@@ -22,13 +23,15 @@ from data.config import ACCOUNTS_FILE_PATH, PROXIES_FILE_PATH, REGISTER_ACCOUNT_
     CLAIM_REWARDS_ONLY, APPROVE_EMAIL, APPROVE_WALLET_ON_EMAIL, MINING_MODE, CONNECT_WALLET, \
     WALLETS_FILE_PATH, SEND_WALLET_APPROVE_LINK_TO_EMAIL, SINGLE_IMAP_ACCOUNT, SEMI_AUTOMATIC_APPROVE_LINK, \
     PROXY_DB_PATH, USE_CONSOLE_VERSION
+from prometheus_client import start_http_server
+from core.utils.metrics.metrics import grass_info
 
 
 def bot_info(name: str = ""):
     cprint(text2art(name), 'green')
 
-    if sys.platform == 'win32':
-        ctypes.windll.kernel32.SetConsoleTitleW(f"{name}")
+    # if sys.platform == 'win32':
+    #     ctypes.windll.kernel32.SetConsoleTitleW(f"{name}")
 
     print(
         f"{colored('EnJoYeR <crypto/> moves:', color='light_yellow')} "
@@ -181,24 +184,13 @@ async def main():
 
     logger.info(msg)
 
+    grass_info.info({"accounts": f"{len(accounts)}", "proxies": f"{len(proxies)}"})
     await autoreger.start(worker_task, threads)
 
     await db.close_connection()
 
 
 if __name__ == "__main__":
-    if sys.platform == 'win32':
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
-
-        if not USE_CONSOLE_VERSION:
-            import interface
-            interface.start_ui()
-        else:
-            bot_info("GRASS_AUTO")
-            loop = asyncio.ProactorEventLoop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(main())
-    else:
-        bot_info("GRASS_AUTO")
-
-        asyncio.run(main())
+    bot_info("GRASS_AUTO")
+    start_http_server(8080)
+    asyncio.run(main())
