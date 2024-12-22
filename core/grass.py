@@ -5,7 +5,7 @@ from typing import List, Optional
 
 import aiohttp
 from fake_useragent import UserAgent
-from tenacity import stop_after_attempt, retry, retry_if_not_exception_type, wait_random, retry_if_exception_type
+from tenacity import stop_after_attempt, retry, retry_if_not_exception_type, wait_random, wait_exponential, retry_if_exception_type
 
 from data.config import MIN_PROXY_SCORE, CHECK_POINTS, STOP_ACCOUNTS_WHEN_SITE_IS_DOWN, NODE_TYPE
 
@@ -163,7 +163,7 @@ class Grass(GrassWs, GrassRest, FailureCounter):
            retry=(retry_if_exception_type(ConnectionError) | retry_if_not_exception_type(ProxyForbiddenException)),
            retry_error_callback=lambda retry_state:
            raise_error(WebsocketConnectionFailedError(f"{retry_state.outcome.exception()}")),
-           wait=wait_random(7, 10),
+           wait=wait_exponential(multiplier=7, min=7, max=60, exp_base=2),
            reraise=True)
     async def connection_handler(self):
         logger.info(f"{self.id} | Connecting...")

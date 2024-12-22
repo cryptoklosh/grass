@@ -8,7 +8,7 @@ import time
 import base58
 from aiohttp import ContentTypeError, ClientConnectionError
 from pydantic.networks import pretty_email_regex
-from tenacity import retry, stop_after_attempt, wait_random, retry_if_not_exception_type
+from tenacity import retry, stop_after_attempt, wait_random, wait_exponential, retry_if_not_exception_type
 
 from core.utils import logger, loguru
 from core.utils.captcha_service import CaptchaService
@@ -41,7 +41,7 @@ class GrassRest(BaseClient):
             stop=stop_after_attempt(12),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Create Account Retrying...  | "
                                                                    f"{retry_state.outcome.exception()} "),
-            wait=wait_random(5, 8),
+            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
             reraise=True
         )
 
@@ -83,6 +83,7 @@ class GrassRest(BaseClient):
 
     @retry(stop=stop_after_attempt(3),
            before_sleep=lambda retry_state, **kwargs: logger.info(f"Retrying... {retry_state.outcome.exception()}"),
+           wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
            reraise=True)
     async def retrieve_user(self):
         url = 'https://api.getgrass.io/retrieveUser'
@@ -96,7 +97,7 @@ class GrassRest(BaseClient):
             stop=stop_after_attempt(3),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to claim rewards... "
                                                                    f"Continue..."),
-            wait=wait_random(5, 7),
+            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
             reraise=True
         )
 
@@ -119,7 +120,7 @@ class GrassRest(BaseClient):
             stop=stop_after_attempt(3),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to get points... "
                                                                    f"Continue..."),
-            wait=wait_random(5, 7),
+            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
             reraise=True
         )
 
@@ -150,7 +151,7 @@ class GrassRest(BaseClient):
             retry=retry_if_not_exception_type((LoginException, ProxyBlockedException)),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Login retrying... "
                                                                    f"{retry_state.outcome.exception()}"),
-            wait=wait_random(8, 12),
+            wait=wait_exponential(multiplier=8, min=8, max=60, exp_base=2),
             reraise=True
         )
 
@@ -207,7 +208,7 @@ class GrassRest(BaseClient):
     async def send_approve_link(self, endpoint: str):
         @retry(
             stop=stop_after_attempt(3),
-            wait=wait_random(5, 7),
+            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
             reraise=True,
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to send {endpoint}... "
                                                                    f"Continue..."),
@@ -234,7 +235,7 @@ class GrassRest(BaseClient):
     async def approve_email_handler(self, verify_token: str, endpoint: str):
         @retry(
             stop=stop_after_attempt(3),
-            wait=wait_random(5, 7),
+            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
             reraise=True,
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to approve {endpoint}... "
                                                                    f"Continue..."),
@@ -270,7 +271,7 @@ Nonce: {timestamp}"""
     async def link_wallet(self, private_key: str):
         @retry(
             stop=stop_after_attempt(3),
-            wait=wait_random(5, 7),
+            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
             reraise=True,
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to send link wallet... "
                                                                    f"Continue..."),
@@ -362,6 +363,7 @@ Nonce: {timestamp}"""
             stop=stop_after_attempt(3),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to get proxy score... "
                                                                    f"Continue..."),
+            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
             reraise=True
         )
 
@@ -376,6 +378,7 @@ Nonce: {timestamp}"""
             stop=stop_after_attempt(3),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to get proxy score... "
                                                                    f"Continue..."),
+            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
             reraise=True
         )
 
