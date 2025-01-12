@@ -5,7 +5,10 @@ def file_to_list(
         filename: str
 ):
     with open(filename, 'r+') as f:
-        return list(filter(bool, f.read().splitlines()))
+        all_lines = filter(bool, f.read().splitlines())
+        no_comments = filter(lambda s: not(s.startswith("#")), all_lines)
+
+        return list(no_comments)
 
 
 def str_to_file(file_name: str, msg: str, mode: Optional[str] = "a"):
