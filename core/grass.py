@@ -23,7 +23,7 @@ from .utils.error_helper import raise_error, FailureCounter
 from .utils.exception import WebsocketClosedException, LowProxyScoreException, ProxyScoreNotFoundException, \
     ProxyForbiddenException, ProxyError, WebsocketConnectionFailedError, FailureLimitReachedException, \
     NoProxiesException, ProxyBlockedException, SiteIsDownException, LoginException
-from .utils.metrics.metrics import mined_grass_counter, available_proxies_gauge, proxy_score_gauge
+from .utils.metrics.metrics import mined_grass_counter, available_proxies_gauge, proxy_score_gauge, grass_accounts_created_gauge, grass_accounts_active_gauge
 from better_proxy import Proxy
 
 
@@ -47,12 +47,14 @@ class Grass(GrassWs, GrassRest, FailureCounter):
 
         self.fail_count = 0
         self.limit = 7
+        self.last_time_check_was_successful = False
 
         proxy_score_gauge.labels(
             account=f"{self.id}"
         ).set_function(
             lambda: self.proxy_score if self.proxy_score is not None else 0
         )
+        grass_accounts_created_gauge.labels(account=f"{self.email}").inc()
 
     async def start(self):
         if self.db:
@@ -70,6 +72,7 @@ class Grass(GrassWs, GrassRest, FailureCounter):
                 await self.run(browser_id, user_id)
             except LoginException as e:
                 logger.warning(f"LoginException | {self.id} | {e}")
+                self.handle_active_state_change(False)
                 return False
             except (ProxyBlockedException, ProxyForbiddenException) as e:
                 # self.proxies.remove(self.proxy)
@@ -90,6 +93,7 @@ class Grass(GrassWs, GrassRest, FailureCounter):
             else:
                 msg = ""
 
+            self.handle_active_state_change(False)
             await self.failure_handler(
                 is_raise=False,
             )
@@ -138,10 +142,12 @@ class Grass(GrassWs, GrassRest, FailureCounter):
                     #     logger.info(f"Total points in database: {total_points or 0}")
                     if i:
                         self.fail_reset()
+                    self.handle_active_state_change(True)
 
                     await asyncio.sleep(random.randint(119, 120))
             except (WebsocketClosedException, ConnectionResetError, TypeError) as e:
                 logger.info(f"{self.id} | {type(e).__name__}: {e}. Reconnecting...")
+                self.handle_active_state_change(False)
             # except ConnectionResetError as e:
             #     logger.info(f"{self.id} | Connection reset: {e}. Reconnecting...")
             # except TypeError as e:
@@ -152,6 +158,16 @@ class Grass(GrassWs, GrassRest, FailureCounter):
             await self.failure_handler(limit=3)
 
             await asyncio.sleep(5, 10)
+
+
+    def handle_active_state_change(self, state):
+        if self.last_time_check_was_successful != state:
+            if state:
+                grass_accounts_active_gauge.labels(account=f"{self.email}").inc()
+            else:
+                grass_accounts_active_gauge.labels(account=f"{self.email}").dec()
+            self.last_time_check_was_successful = state
+
 
     async def claim_rewards(self):
         await self.enter_account()
