@@ -179,7 +179,7 @@ class Grass(GrassWs, GrassRest, FailureCounter):
            retry=(retry_if_exception_type(ConnectionError) | retry_if_not_exception_type(ProxyForbiddenException)),
            retry_error_callback=lambda retry_state:
            raise_error(WebsocketConnectionFailedError(f"{retry_state.outcome.exception()}")),
-           wait=wait_exponential(multiplier=7, min=7, max=60, exp_base=2),
+           wait=wait_exponential(multiplier=7, min=7, max=3600, exp_base=4),
            reraise=True)
     async def connection_handler(self):
         logger.info(f"{self.id} | Connecting...")

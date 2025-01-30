@@ -41,7 +41,7 @@ class GrassRest(BaseClient):
             stop=stop_after_attempt(12),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Create Account Retrying...  | "
                                                                    f"{retry_state.outcome.exception()} "),
-            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
+            wait=wait_exponential(multiplier=5, min=5, max=3600, exp_base=4),
             reraise=True
         )
 
@@ -83,7 +83,7 @@ class GrassRest(BaseClient):
 
     @retry(stop=stop_after_attempt(3),
            before_sleep=lambda retry_state, **kwargs: logger.info(f"Retrying... {retry_state.outcome.exception()}"),
-           wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
+           wait=wait_exponential(multiplier=5, min=5, max=3600, exp_base=4),
            reraise=True)
     async def retrieve_user(self):
         url = 'https://api.getgrass.io/retrieveUser'
@@ -97,7 +97,7 @@ class GrassRest(BaseClient):
             stop=stop_after_attempt(3),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to claim rewards... "
                                                                    f"Continue..."),
-            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
+            wait=wait_exponential(multiplier=5, min=5, max=3600, exp_base=4),
             reraise=True
         )
 
@@ -120,7 +120,7 @@ class GrassRest(BaseClient):
             stop=stop_after_attempt(3),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to get points... "
                                                                    f"Continue..."),
-            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
+            wait=wait_exponential(multiplier=5, min=5, max=3600, exp_base=4),
             reraise=True
         )
 
@@ -151,7 +151,7 @@ class GrassRest(BaseClient):
             retry=retry_if_not_exception_type((LoginException, ProxyBlockedException)),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Login retrying... "
                                                                    f"{retry_state.outcome.exception()}"),
-            wait=wait_exponential(multiplier=8, min=8, max=60, exp_base=2),
+            wait=wait_exponential(multiplier=8, min=8, max=3600, exp_base=4),
             reraise=True
         )
 
@@ -206,7 +206,7 @@ class GrassRest(BaseClient):
     async def send_approve_link(self, endpoint: str):
         @retry(
             stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
+            wait=wait_exponential(multiplier=5, min=5, max=3600, exp_base=4),
             reraise=True,
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to send {endpoint}... "
                                                                    f"Continue..."),
@@ -233,7 +233,7 @@ class GrassRest(BaseClient):
     async def approve_email_handler(self, verify_token: str, endpoint: str):
         @retry(
             stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
+            wait=wait_exponential(multiplier=5, min=5, max=3600, exp_base=4),
             reraise=True,
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to approve {endpoint}... "
                                                                    f"Continue..."),
@@ -269,7 +269,7 @@ Nonce: {timestamp}"""
     async def link_wallet(self, private_key: str):
         @retry(
             stop=stop_after_attempt(3),
-            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
+            wait=wait_exponential(multiplier=5, min=5, max=3600, exp_base=4),
             reraise=True,
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to send link wallet... "
                                                                    f"Continue..."),
@@ -361,7 +361,7 @@ Nonce: {timestamp}"""
             stop=stop_after_attempt(3),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to get proxy score... "
                                                                    f"Continue..."),
-            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
+            wait=wait_exponential(multiplier=5, min=5, max=3600, exp_base=4),
             reraise=True
         )
 
@@ -376,7 +376,7 @@ Nonce: {timestamp}"""
             stop=stop_after_attempt(3),
             before_sleep=lambda retry_state, **kwargs: logger.info(f"{self.id} | Retrying to get proxy score... "
                                                                    f"Continue..."),
-            wait=wait_exponential(multiplier=5, min=5, max=60, exp_base=2),
+            wait=wait_exponential(multiplier=5, min=5, max=3600, exp_base=4),
             reraise=True
         )
 
