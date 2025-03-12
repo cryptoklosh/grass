@@ -49,6 +49,7 @@ class GrassWs:
         }
 
         response = await self.session.post(url, data=json.dumps(data), headers=headers, proxy=self.proxy)
+        # print(f"response is {response}")
         body = await response.text()
         return json.loads(body)
 
@@ -76,6 +77,7 @@ class GrassWs:
 
         try:
             self.websocket = await self.session.ws_connect(uri, headers=headers, proxy=self.proxy)
+            # print(f"websocket: {self.websocket}")
         except Exception as e:
             logger.error(f"Error connecting to websocket: {e}")
             if 'status' in dir(e) and e.status == 403:
@@ -99,35 +101,48 @@ class GrassWs:
         msg = await self.receive_message()
         return msg['id']
 
+    async def get_connection(self):
+        msg = await self.receive_message()
+        return msg
+
     async def auth_to_extension(self, browser_id: str, user_id: str):
-        connection_id = await self.get_connection_id()
+        connection = await self.get_connection()
+        connection_action = connection['action']
+        connection_id = connection['id']
 
-        message = {
-            "id": connection_id,
-            "origin_action": "AUTH",
-            "result": {
-                "browser_id": browser_id,
-                "user_id": user_id,
-                "user_agent": self.user_agent,
-                "timestamp": int(time.time()),
-                "device_type": "extension",
-                "version": "4.26.2",
-                "extension_id": "ilehaonighjijnmpnagapkhpcdbhclfg"
+        if connection_action == "HTTP_REQUEST":
+            await self.handle_http_request(connection)
+        elif connection_action == "AUTH":
+            message = {
+                "id": connection_id,
+                "origin_action": "AUTH",
+                "result": {
+                    "browser_id": browser_id,
+                    "user_id": user_id,
+                    "user_agent": self.user_agent,
+                    "timestamp": int(time.time()),
+                    "device_type": "extension",
+                    "version": "4.26.2",
+                    "extension_id": "ilehaonighjijnmpnagapkhpcdbhclfg"
+                }
             }
-        }
 
-        if NODE_TYPE == "1_25x":
-            message['result'].update({
-                "extension_id": "lkbnfiajjmbhnfledhphioinpickokdi",
-            })
-        elif NODE_TYPE == "2x":
-            message['result'].update({
-                "device_type": "desktop",
-                "version": "4.30.0",
-            })
-            message['result'].pop("extension_id")
+            if NODE_TYPE == "1_25x":
+                message['result'].update({
+                    "extension_id": "lkbnfiajjmbhnfledhphioinpickokdi",
+                })
+            elif NODE_TYPE == "2x":
+                message['result'].update({
+                    "device_type": "desktop",
+                    "version": "4.30.0",
+                })
+                message['result'].pop("extension_id")
 
-        await self.send_message(json.dumps(message))
+            await self.send_message(json.dumps(message))
+        else:
+            raise RegistrationException(f"Unknown connection_action [{connection_action}]")
+
+
 
     async def send_ping(self):
         message = json.dumps(
@@ -147,14 +162,18 @@ class GrassWs:
 
     async def handle_http_request_action(self):
         http_info = await self.receive_message()
-        result = await self.build_http_request(http_info['data'])
+        await self.handle_http_request(http_info)
+
+
+    async def handle_http_request(self, request_data):
+        result = await self.build_http_request(request_data['data'])
 
         if result == {}:
             raise ConnectionResetError("Not full http request action.")
 
         message = json.dumps(
             {
-                "id": http_info["id"],
+                "id": request_data["id"],
                 "origin_action": "HTTP_REQUEST",
                 "result": result
             }
