@@ -5,8 +5,9 @@ from random import choice
 
 from aiohttp import WSMsgType
 import uuid
-
+from core.utils import logger
 from better_proxy import Proxy
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from core.utils.exception import WebsocketClosedException, ProxyForbiddenException
 
@@ -25,10 +26,37 @@ class GrassWs:
         self.id = None
         # self.ws_session = None
 
-    async def connect(self):
+    async def checkin(self, browser_id, user_id):
+        url = 'https://director.getgrass.io/checkin'
+
+        if NODE_TYPE == "1x":
+            ext_id = 'ilehaonighjijnmpnagapkhpcdbhclfg'
+        elif NODE_TYPE == "1_25x":
+            ext_id = 'lkbnfiajjmbhnfledhphioinpickokdi'
+        headers = {
+            'Content-Type': 'application/json',
+            "Origin": f'chrome-extension://{ext_id}',
+            "User-Agent": self.user_agent
+        }
+
+        data = {
+            'browserId': browser_id,
+            'deviceType': 'extension',
+            'extensionId': ext_id,
+            'userAgent': self.user_agent,
+            'userId': user_id,
+            'version': '5.1.1'
+        }
+
+        response = await self.session.post(url, data=json.dumps(data), headers=headers, proxy=self.proxy)
+        body = await response.text()
+        return json.loads(body)
+
+    async def connect(self, checkin_result):
         # self.proxy=None # testing on local network
-        connection_port = ["4444", "4650"]
-        uri = f"wss://proxy2.wynd.network:{choice(connection_port)}/"
+        destination_ip, token = checkin_result
+
+        uri = f"ws://{destination_ip}/?token={token}"
 
         random_bytes = os.urandom(16)
         sec_websocket_key = base64.b64encode(random_bytes).decode('utf-8')
@@ -47,8 +75,9 @@ class GrassWs:
         }
 
         try:
-            self.websocket = await self.session.ws_connect(uri, proxy_headers=headers, proxy=self.proxy)
+            self.websocket = await self.session.ws_connect(uri, headers=headers, proxy=self.proxy)
         except Exception as e:
+            logger.error(f"Error connecting to websocket: {e}")
             if 'status' in dir(e) and e.status == 403:
                 raise ProxyForbiddenException(f"Low proxy score. Can't connect. Error: {e}")
             raise e

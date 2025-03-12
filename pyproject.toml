@@ -1,0 +1,33 @@
+[tool.poetry]
+name = "grass"
+version = "0.1.0"
+description = ""
+authors = ["Petr Stroganov <petr.stroganov@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+curl-cffi = "0.7.3"
+better-proxy = "1.1.5"
+captchatools = "1.5.0"
+fake-useragent = "1.5.1"
+loguru = "0.7.2"
+randomwords = "0.4.0"
+names = "0.3.0"
+tenacity = "8.2.3"
+aiosqlite = "0.20.0"
+art = "6.1"
+termcolor = "2.4.0"
+base58 = "2.1.1"
+solders = "0.21.0"
+imap-tools = "1.6.0"
+python-socks = "2.5.3"
+beautifulsoup4 = "4.12.3"
+aiohttp = "3.10.11"
+requests = "2.31.0"
+prometheus-client = "0.21.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

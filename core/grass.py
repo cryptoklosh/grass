@@ -106,7 +106,8 @@ class Grass(GrassWs, GrassRest, FailureCounter):
     async def run(self, browser_id: str, user_id: str):
         while True:
             try:
-                await self.connection_handler()
+                checkin_result = await self.checkin_handler(browser_id, user_id)
+                await self.connection_handler(checkin_result)
 
                 await self.auth_to_extension(browser_id, user_id)
 
@@ -181,9 +182,23 @@ class Grass(GrassWs, GrassRest, FailureCounter):
            raise_error(WebsocketConnectionFailedError(f"{retry_state.outcome.exception()}")),
            wait=wait_exponential(multiplier=7, min=7, max=3600, exp_base=4),
            reraise=True)
-    async def connection_handler(self):
+    async def checkin_handler(self, browser_id: str, user_id: str):
+        logger.info(f"{self.id} | Checking In...")
+        checkin = await self.checkin(browser_id, user_id)
+        destination_ip = checkin['destinations'][0]
+        token = checkin['token']
+        logger.info(f"{self.id} | Checked In | Destination: [{destination_ip}], Token: [{token}]")
+        return (destination_ip, token)
+
+    @retry(stop=stop_after_attempt(7),
+           retry=(retry_if_exception_type(ConnectionError) | retry_if_not_exception_type(ProxyForbiddenException)),
+           retry_error_callback=lambda retry_state:
+           raise_error(WebsocketConnectionFailedError(f"{retry_state.outcome.exception()}")),
+           wait=wait_exponential(multiplier=7, min=7, max=3600, exp_base=4),
+           reraise=True)
+    async def connection_handler(self, checkin_result):
         logger.info(f"{self.id} | Connecting...")
-        await self.connect()
+        await self.connect(checkin_result)
         logger.info(f"{self.id} | Connected")
 
     # @retry(stop=stop_after_attempt(3),
