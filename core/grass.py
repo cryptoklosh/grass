@@ -184,7 +184,7 @@ class Grass(GrassWs, GrassRest, FailureCounter):
         checkin = await self.checkin(browser_id, user_id)
         destination_ip = checkin['destinations'][0]
         token = checkin['token']
-        logger.info(f"{self.id} | Checked In | Destination: [{destination_ip}], Token: [{token}]")
+        logger.info(f"{self.id} | Checked In | Destination: [{destination_ip}]")
         return (destination_ip, token)
 
     @retry(stop=stop_after_attempt(7),
