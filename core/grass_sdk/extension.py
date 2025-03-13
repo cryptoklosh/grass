@@ -57,7 +57,7 @@ class GrassWs:
         # self.proxy=None # testing on local network
         destination_ip, token = checkin_result
 
-        uri = f"ws://{destination_ip}/?token={token}"
+        uri = f"wss://{destination_ip}/?token={token}"
 
         random_bytes = os.urandom(16)
         sec_websocket_key = base64.b64encode(random_bytes).decode('utf-8')
@@ -76,7 +76,7 @@ class GrassWs:
         }
 
         try:
-            self.websocket = await self.session.ws_connect(uri, headers=headers, proxy=self.proxy)
+            self.websocket = await self.session.ws_connect(uri, proxy_headers=headers, proxy=self.proxy)
             # print(f"websocket: {self.websocket}")
         except Exception as e:
             logger.error(f"Error connecting to websocket: {e}")
